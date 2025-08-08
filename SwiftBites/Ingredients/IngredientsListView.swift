@@ -21,8 +21,8 @@ struct IngredientsListView: View {
     
     // MARK: - Properties
     
-    let searchText: String
-    let selection: Selection?
+    private let searchText: String
+    private let selection: Selection?
     
     // MARK: - Initializers
     

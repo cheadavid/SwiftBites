@@ -1,16 +1,33 @@
 import SwiftUI
-import SwiftData
 
 struct IngredientForm: View {
+    
+    // MARK: - Enums
+    
     enum Mode: Hashable {
-        case add
-        case edit(Ingredient)
+        case add, edit(Ingredient)
     }
     
-    var mode: Mode
+    // MARK: - Environments
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    // MARK: - States
+    
+    @State private var name: String
+    @FocusState private var isNameFocused: Bool
+    
+    // MARK: - Properties
+    
+    private let mode: Mode
+    private let title: String
+    
+    // MARK: - Initializers
     
     init(mode: Mode) {
         self.mode = mode
+        
         switch mode {
         case .add:
             _name = .init(initialValue: "")
@@ -21,13 +38,6 @@ struct IngredientForm: View {
         }
     }
     
-    private let title: String
-    @State private var name: String
-    @State private var error: Error?
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @FocusState private var isNameFocused: Bool
-    
     // MARK: - Body
     
     var body: some View {
@@ -36,17 +46,13 @@ struct IngredientForm: View {
                 TextField("Name", text: $name)
                     .focused($isNameFocused)
             }
+            
             if case .edit(let ingredient) = mode {
-                Button(
-                    role: .destructive,
-                    action: {
-                        delete(ingredient: ingredient)
-                    },
-                    label: {
-                        Text("Delete Ingredient")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                )
+                Button("Delete Ingredient", role: .destructive) {
+                    modelContext.delete(ingredient)
+                    dismiss()
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .onAppear {
@@ -55,52 +61,24 @@ struct IngredientForm: View {
         .onSubmit {
             save()
         }
-        .alert("Error", isPresented: Binding<Bool>(
-            get: { error != nil },
-            set: { if !$0 { error = nil } }
-        )) {
-            Button("OK") {
-                error = nil
-            }
-        } message: {
-            Text(error?.localizedDescription ?? "An unknown error occurred.")
-        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save", action: save)
-                    .disabled(name.isEmpty)
-            }
+            Button("Save", action: save)
+                .disabled(name.isEmpty)
         }
     }
     
-    // MARK: - Data
-    
-    private func delete(ingredient: Ingredient) {
-        modelContext.delete(ingredient)
-        do {
-            try modelContext.save()
-        } catch {
-            self.error = error
-            return
-        }
-        dismiss()
-    }
+    // MARK: - Methods
     
     private func save() {
-        do {
-            switch mode {
-            case .add:
-                let ingredient = Ingredient(name: name)
-                modelContext.insert(ingredient)
-            case .edit(let ingredient):
-                ingredient.name = name
-            }
-            try modelContext.save()
-            dismiss()
-        } catch {
-            self.error = error
+        switch mode {
+        case .add:
+            modelContext.insert(Ingredient(name: name))
+        case .edit(let ingredient):
+            ingredient.name = name
         }
+        
+        dismiss()
     }
 }

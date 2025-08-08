@@ -10,7 +10,7 @@ struct IngredientsView: View {
     
     // MARK: - Properties
     
-    let selection: Selection?
+    private let selection: Selection?
     
     // MARK: - Initializers
     
@@ -23,12 +23,12 @@ struct IngredientsView: View {
     var body: some View {
         NavigationStack {
             IngredientsListView(searchText: searchText, selection: selection)
+                .navigationTitle("Ingredients")
                 .toolbar {
                     NavigationLink(value: IngredientForm.Mode.add) {
                         Label("Add", systemImage: "plus")
                     }
                 }
-                .navigationTitle("Ingredients")
                 .searchable(text: $searchText)
                 .navigationDestination(for: IngredientForm.Mode.self) { mode in
                     IngredientForm(mode: mode)

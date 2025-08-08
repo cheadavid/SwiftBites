@@ -1,7 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct RecipeCell: View {
-    let recipe: MockRecipe
+    let recipe: Recipe
     
     // MARK: - Body
     

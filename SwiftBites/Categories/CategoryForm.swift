@@ -1,9 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct CategoryForm: View {
     enum Mode: Hashable {
         case add
-        case edit(MockCategory)
+        case edit(Category)
     }
     
     var mode: Mode
@@ -23,7 +24,7 @@ struct CategoryForm: View {
     private let title: String
     @State private var name: String
     @State private var error: Error?
-    @Environment(\.storage) private var storage
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFocused: Bool
     
@@ -54,7 +55,16 @@ struct CategoryForm: View {
         .onSubmit {
             save()
         }
-        .alert(error: $error)
+        .alert("Error", isPresented: Binding<Bool>(
+            get: { error != nil },
+            set: { if !$0 { error = nil } }
+        )) {
+            Button("OK") {
+                error = nil
+            }
+        } message: {
+            Text(error?.localizedDescription ?? "An unknown error occurred.")
+        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -67,8 +77,14 @@ struct CategoryForm: View {
     
     // MARK: - Data
     
-    private func delete(category: MockCategory) {
-        storage.deleteCategory(id: category.id)
+    private func delete(category: Category) {
+        modelContext.delete(category)
+        do {
+            try modelContext.save()
+        } catch {
+            self.error = error
+            return
+        }
         dismiss()
     }
     
@@ -76,10 +92,12 @@ struct CategoryForm: View {
         do {
             switch mode {
             case .add:
-                try storage.addCategory(name: name)
+                let category = Category(name: name)
+                modelContext.insert(category)
             case .edit(let category):
-                try storage.updateCategory(id: category.id, name: name)
+                category.name = name
             }
+            try modelContext.save()
             dismiss()
         } catch {
             self.error = error

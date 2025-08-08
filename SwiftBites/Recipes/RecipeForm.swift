@@ -1,11 +1,12 @@
 import SwiftUI
 import PhotosUI
 import Foundation
+import SwiftData
 
 struct RecipeForm: View {
     enum Mode: Hashable {
         case add
-        case edit(MockRecipe)
+        case edit(Recipe)
     }
     
     var mode: Mode
@@ -29,9 +30,8 @@ struct RecipeForm: View {
             _time = .init(initialValue: recipe.time)
             _instructions = .init(initialValue: recipe.instructions)
             _ingredients = .init(initialValue: recipe.ingredients)
-            _categoryId = .init(initialValue: recipe.category?.id)
+            _selectedCategory = .init(initialValue: recipe.category)
             _imageData = .init(initialValue: recipe.imageData)
-            
         }
     }
     
@@ -41,14 +41,15 @@ struct RecipeForm: View {
     @State private var serving: Int
     @State private var time: Int
     @State private var instructions: String
-    @State private var categoryId: MockCategory.ID?
-    @State private var ingredients: [MockRecipeIngredient]
+    @State private var selectedCategory: Category?
+    @State private var ingredients: [RecipeIngredient]
     @State private var imageItem: PhotosPickerItem?
     @State private var imageData: Data?
-    @State private var isIngredientsPickerPresented =  false
+    @State private var isIngredientsPickerPresented = false
     @State private var error: Error?
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.storage) private var storage
+    @Environment(\.modelContext) private var modelContext
+    @Query private var categories: [Category]
     
     // MARK: - Body
     
@@ -68,7 +69,16 @@ struct RecipeForm: View {
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .alert(error: $error)
+        .alert("Error", isPresented: Binding<Bool>(
+            get: { error != nil },
+            set: { if !$0 { error = nil } }
+        )) {
+            Button("OK") {
+                error = nil
+            }
+        } message: {
+            Text(error?.localizedDescription ?? "An unknown error occurred.")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save", action: save)
@@ -87,7 +97,7 @@ struct RecipeForm: View {
     
     private func ingredientPicker() -> some View {
         IngredientsView { selectedIngredient in
-            let recipeIngredient = MockRecipeIngredient(ingredient: selectedIngredient, quantity: "")
+            let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, quantity: "")
             ingredients.append(recipeIngredient)
         }
     }
@@ -155,10 +165,10 @@ struct RecipeForm: View {
     @ViewBuilder
     private var categorySection: some View {
         Section {
-            Picker("Category", selection: $categoryId) {
-                Text("None").tag(nil as MockCategory.ID?)
-                ForEach(storage.categories) { category in
-                    Text(category.name).tag(category.id as MockCategory.ID?)
+            Picker("Category", selection: $selectedCategory) {
+                Text("None").tag(nil as Category?)
+                ForEach(categories, id: \.persistentModelID) { category in
+                    Text(category.name).tag(category as Category?)
                 }
             }
         }
@@ -191,20 +201,18 @@ struct RecipeForm: View {
                     }
                 )
             } else {
-                ForEach(ingredients) { ingredient in
+                ForEach(ingredients, id: \.persistentModelID) { ingredient in
                     HStack(alignment: .center) {
                         Text(ingredient.ingredient.name)
                             .bold()
                             .layoutPriority(2)
                         Spacer()
-                        TextField("Quantity", text: .init(
+                        TextField("Quantity", text: Binding(
                             get: {
                                 ingredient.quantity
                             },
                             set: { quantity in
-                                if let index = ingredients.firstIndex(where: { $0.id == ingredient.id }) {
-                                    ingredients[index].quantity = quantity
-                                }
+                                ingredient.quantity = quantity
                             }
                         ))
                         .layoutPriority(1)
@@ -223,13 +231,13 @@ struct RecipeForm: View {
     private var instructionsSection: some View {
         Section("Instructions") {
             TextField(
-        """
-        1. Preheat the oven to 475°F (245°C).
-        2. Roll out the dough on a floured surface.
-        3. ...
-        """,
-        text: $instructions,
-        axis: .vertical
+                """
+                1. Preheat the oven to 475°F (245°C).
+                2. Roll out the dough on a floured surface.
+                3. ...
+                """,
+                text: $instructions,
+                axis: .vertical
             )
             .lineLimit(8...12)
         }
@@ -253,49 +261,78 @@ struct RecipeForm: View {
     
     // MARK: - Data
     
-    func delete(recipe: MockRecipe) {
+    func delete(recipe: Recipe) {
         guard case .edit(let recipe) = mode else {
             fatalError("Delete unavailable in add mode")
         }
-        storage.deleteRecipe(id: recipe.id)
+        modelContext.delete(recipe)
+        do {
+            try modelContext.save()
+        } catch {
+            self.error = error
+            return
+        }
         dismiss()
     }
     
     func deleteIngredients(offsets: IndexSet) {
         withAnimation {
-            ingredients.remove(atOffsets: offsets)
+            let ingredientsToDelete = offsets.map { ingredients[$0] }
+            for ingredient in ingredientsToDelete {
+                if let index = ingredients.firstIndex(of: ingredient) {
+                    ingredients.remove(at: index)
+                }
+                modelContext.delete(ingredient)
+            }
         }
     }
     
     func save() {
-        let category = storage.categories.first(where: { $0.id == categoryId })
-        
         do {
             switch mode {
             case .add:
-                try storage.addRecipe(
+                let recipe = Recipe(
                     name: name,
+                    imageData: imageData,
+                    category: selectedCategory,
                     summary: summary,
-                    category: category,
-                    serving: serving,
-                    time: time,
-                    ingredients: ingredients,
                     instructions: instructions,
-                    imageData: imageData
+                    serving: serving,
+                    time: time
+                    
+                    
                 )
+                modelContext.insert(recipe)
+                
+                // Add ingredients to the recipe
+                for ingredient in ingredients {
+                    ingredient.recipe = recipe
+                    modelContext.insert(ingredient)
+                }
+                
             case .edit(let recipe):
-                try storage.updateRecipe(
-                    id: recipe.id,
-                    name: name,
-                    summary: summary,
-                    category: category,
-                    serving: serving,
-                    time: time,
-                    ingredients: ingredients,
-                    instructions: instructions,
-                    imageData: imageData
-                )
+                recipe.name = name
+                recipe.summary = summary
+                recipe.serving = serving
+                recipe.time = time
+                recipe.instructions = instructions
+                recipe.imageData = imageData
+                recipe.category = selectedCategory
+                
+                // Update ingredients - remove old ones and add new ones
+                for oldIngredient in recipe.ingredients {
+                    modelContext.delete(oldIngredient)
+                }
+                
+                for ingredient in ingredients {
+                    ingredient.recipe = recipe
+                    if modelContext.model(for: ingredient.persistentModelID) == nil {
+                        modelContext.insert(ingredient)
+                    }
+                }
             }
+            
+            try modelContext.save()
             dismiss()
         } catch {
             self.error = error

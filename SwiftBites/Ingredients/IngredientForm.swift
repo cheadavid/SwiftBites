@@ -1,9 +1,10 @@
 import SwiftUI
+import SwiftData
 
 struct IngredientForm: View {
     enum Mode: Hashable {
         case add
-        case edit(MockIngredient)
+        case edit(Ingredient)
     }
     
     var mode: Mode
@@ -23,7 +24,7 @@ struct IngredientForm: View {
     private let title: String
     @State private var name: String
     @State private var error: Error?
-    @Environment(\.storage) private var storage
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isNameFocused: Bool
     
@@ -54,6 +55,16 @@ struct IngredientForm: View {
         .onSubmit {
             save()
         }
+        .alert("Error", isPresented: Binding<Bool>(
+            get: { error != nil },
+            set: { if !$0 { error = nil } }
+        )) {
+            Button("OK") {
+                error = nil
+            }
+        } message: {
+            Text(error?.localizedDescription ?? "An unknown error occurred.")
+        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -66,8 +77,14 @@ struct IngredientForm: View {
     
     // MARK: - Data
     
-    private func delete(ingredient: MockIngredient) {
-        storage.deleteIngredient(id: ingredient.id)
+    private func delete(ingredient: Ingredient) {
+        modelContext.delete(ingredient)
+        do {
+            try modelContext.save()
+        } catch {
+            self.error = error
+            return
+        }
         dismiss()
     }
     
@@ -75,10 +92,12 @@ struct IngredientForm: View {
         do {
             switch mode {
             case .add:
-                try storage.addIngredient(name: name)
+                let ingredient = Ingredient(name: name)
+                modelContext.insert(ingredient)
             case .edit(let ingredient):
-                try storage.updateIngredient(id: ingredient.id, name: name)
+                ingredient.name = name
             }
+            try modelContext.save()
             dismiss()
         } catch {
             self.error = error

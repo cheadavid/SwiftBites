@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The main view that appears when the app is launched.
 struct ContentView: View {
-    @Environment(\.storage) private var storage
+    
+    // MARK: - Body
     
     var body: some View {
         TabView {
@@ -10,19 +10,14 @@ struct ContentView: View {
                 .tabItem {
                     Label("Recipes", systemImage: "frying.pan")
                 }
-            
             CategoriesView()
                 .tabItem {
                     Label("Categories", systemImage: "tag")
                 }
-            
             IngredientsView()
                 .tabItem {
                     Label("Ingredients", systemImage: "carrot")
                 }
-        }
-        .onAppear {
-            storage.load()
         }
     }
 }

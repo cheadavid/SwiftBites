@@ -287,6 +287,9 @@ struct RecipeForm: View {
         }
     }
     
+    // Replace the problematic section in your save() method (around line 320-330)
+    // with this corrected version:
+    
     func save() {
         do {
             switch mode {
@@ -299,8 +302,6 @@ struct RecipeForm: View {
                     instructions: instructions,
                     serving: serving,
                     time: time
-                    
-                    
                 )
                 modelContext.insert(recipe)
                 
@@ -326,9 +327,8 @@ struct RecipeForm: View {
                 
                 for ingredient in ingredients {
                     ingredient.recipe = recipe
-                    if modelContext.model(for: ingredient.persistentModelID) == nil {
-                        modelContext.insert(ingredient)
-                    }
+                    // Simply insert all ingredients since we deleted the old ones
+                    modelContext.insert(ingredient)
                 }
             }
             

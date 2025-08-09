@@ -1,7 +1,9 @@
 import SwiftUI
-import SwiftData
 
 struct CategorySection: View {
+    
+    // MARK: - Properties
+    
     let category: Category
     
     // MARK: - Body
@@ -16,7 +18,7 @@ struct CategorySection: View {
                 }
             },
             header: {
-                HStack(alignment: .center) {
+                HStack {
                     Text(category.name)
                         .font(.title)
                         .bold()
@@ -31,24 +33,7 @@ struct CategorySection: View {
     
     // MARK: - Views
     
-    var list: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(category.recipes, id: \.persistentModelID) { recipe in
-                    NavigationLink(value: CategoriesView.Destination.recipeForm(.edit(recipe))) {
-                        RecipeCell(recipe: recipe).content
-                    }
-                    .buttonStyle(.plain)
-                    .containerRelativeFrame(.horizontal, count: 12, span: 11, spacing: 0)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollIndicators(.hidden)
-    }
-    
-    var empty: some View {
+    private var empty: some View {
         ContentUnavailableView(
             label: {
                 Label("No Recipes", systemImage: "list.clipboard")
@@ -62,5 +47,22 @@ struct CategorySection: View {
                     .buttonStyle(.bordered)
             }
         )
+    }
+    
+    private var list: some View {
+        ScrollView {
+            LazyHStack {
+                ForEach(category.recipes, id: \.persistentModelID) { recipe in
+                    NavigationLink(value: CategoriesView.Destination.recipeForm(.edit(recipe))) {
+                        RecipeCell(recipe: recipe).content
+                    }
+                    .buttonStyle(.plain)
+                    .containerRelativeFrame(.horizontal, count: 12, span: 11, spacing: 0)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.viewAligned)
+        .scrollIndicators(.hidden)
     }
 }

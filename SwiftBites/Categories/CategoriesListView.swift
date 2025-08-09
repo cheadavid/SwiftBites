@@ -26,9 +26,7 @@ struct CategoriesListView: View {
         _categories = Query(
             filter: searchText.isEmpty
             ? #Predicate<Category> { _ in true }
-            : #Predicate<Category> { category in
-                category.name.localizedStandardContains(searchText)
-            },
+            : #Predicate<Category> { $0.name.localizedStandardContains(searchText) },
             sort: \Category.name
         )
     }
@@ -36,50 +34,31 @@ struct CategoriesListView: View {
     // MARK: - Body
     
     var body: some View {
-        content
-    }
-    
-    // MARK: - Views
-    
-    @ViewBuilder
-    private var content: some View {
         if categories.isEmpty && searchText.isEmpty {
-            empty
+            ContentUnavailableView(
+                label: {
+                    Label("No Categories", systemImage: "list.clipboard")
+                },
+                description: {
+                    Text("Categories you add will appear here.")
+                },
+                actions: {
+                    NavigationLink("Add Category", value: CategoriesView.Destination.categoryForm(.add))
+                        .buttonBorderShape(.roundedRectangle)
+                        .buttonStyle(.borderedProminent)
+                }
+            )
         } else if categories.isEmpty && !searchText.isEmpty {
-            noResults
+            ContentUnavailableView(
+                label: {
+                    Text("Couldn't find \"\(searchText)\"")
+                }
+            )
         } else {
-            list
-        }
-    }
-    
-    private var empty: some View {
-        ContentUnavailableView(
-            label: {
-                Label("No Categories", systemImage: "list.clipboard")
-            },
-            description: {
-                Text("Categories you add will appear here.")
-            },
-            actions: {
-                NavigationLink("Add Category", value: CategoriesView.Destination.categoryForm(.add))
-                    .buttonBorderShape(.roundedRectangle)
-                    .buttonStyle(.borderedProminent)
-            }
-        )
-    }
-    
-    private var noResults: some View {
-        ContentUnavailableView(
-            label: {
-                Text("Couldn't find \"\(searchText)\"")
-            }
-        )
-    }
-    
-    private var list: some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 10) {
-                ForEach(categories, id: \.persistentModelID, content: CategorySection.init)
+            ScrollView(.vertical) {
+                LazyVStack(spacing: 10) {
+                    ForEach(categories, id: \.persistentModelID, content: CategorySection.init)
+                }
             }
         }
     }

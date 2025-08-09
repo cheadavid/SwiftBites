@@ -33,9 +33,7 @@ struct IngredientsListView: View {
         _ingredients = Query(
             filter: searchText.isEmpty
             ? #Predicate<Ingredient> { _ in true }
-            : #Predicate<Ingredient> { ingredient in
-                ingredient.name.localizedStandardContains(searchText)
-            },
+            : #Predicate<Ingredient> { $0.name.localizedStandardContains(searchText) },
             sort: \Ingredient.name
         )
     }

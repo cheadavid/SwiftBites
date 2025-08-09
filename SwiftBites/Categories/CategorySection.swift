@@ -21,7 +21,7 @@ struct CategorySection: View {
                         .font(.title)
                         .bold()
                     Spacer()
-                    NavigationLink("Edit", value: CategoryForm.Mode.edit(category))
+                    NavigationLink("Edit", value: CategoriesView.Destination.categoryForm(.edit(category)))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
@@ -35,8 +35,11 @@ struct CategorySection: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEach(category.recipes, id: \.persistentModelID) { recipe in
-                    RecipeCell(recipe: recipe)
-                        .containerRelativeFrame(.horizontal, count: 12, span: 11, spacing: 0)
+                    NavigationLink(value: CategoriesView.Destination.recipeForm(.edit(recipe))) {
+                        RecipeCell(recipe: recipe).content
+                    }
+                    .buttonStyle(.plain)
+                    .containerRelativeFrame(.horizontal, count: 12, span: 11, spacing: 0)
                 }
             }
             .scrollTargetLayout()
@@ -54,7 +57,7 @@ struct CategorySection: View {
                 Text("Recipes you add will appear here.")
             },
             actions: {
-                NavigationLink("Add Recipe", value: RecipeForm.Mode.add)
+                NavigationLink("Add Recipe", value: CategoriesView.Destination.recipeForm(.add))
                     .buttonBorderShape(.roundedRectangle)
                     .buttonStyle(.bordered)
             }

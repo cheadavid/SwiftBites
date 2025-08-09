@@ -5,7 +5,8 @@ struct IngredientForm: View {
     // MARK: - Enums
     
     enum Mode: Hashable {
-        case add, edit(Ingredient)
+        case add
+        case edit(Ingredient)
     }
     
     // MARK: - Environments

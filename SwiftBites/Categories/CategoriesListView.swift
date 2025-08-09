@@ -9,15 +9,28 @@ import SwiftUI
 import SwiftData
 
 struct CategoriesListView: View {
-    let searchPredicate: Predicate<Category>
-    let searchText: String
+    
+    // MARK: - Queries
     
     @Query private var categories: [Category]
     
-    init(searchPredicate: Predicate<Category>, searchText: String) {
-        self.searchPredicate = searchPredicate
+    // MARK: - Properties
+    
+    private let searchText: String
+    
+    // MARK: - Initializers
+    
+    init(searchText: String) {
         self.searchText = searchText
-        _categories = Query(filter: searchPredicate, sort: \Category.name)
+        
+        _categories = Query(
+            filter: searchText.isEmpty
+            ? #Predicate<Category> { _ in true }
+            : #Predicate<Category> { category in
+                category.name.localizedStandardContains(searchText)
+            },
+            sort: \Category.name
+        )
     }
     
     // MARK: - Body
@@ -48,7 +61,7 @@ struct CategoriesListView: View {
                 Text("Categories you add will appear here.")
             },
             actions: {
-                NavigationLink("Add Category", value: CategoryForm.Mode.add)
+                NavigationLink("Add Category", value: CategoriesView.Destination.categoryForm(.add))
                     .buttonBorderShape(.roundedRectangle)
                     .buttonStyle(.borderedProminent)
             }

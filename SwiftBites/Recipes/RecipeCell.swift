@@ -4,6 +4,12 @@ import SwiftData
 struct RecipeCell: View {
     let recipe: Recipe
     
+    // MARK: - Initializers
+    
+    init(recipe: Recipe) {
+        self.recipe = recipe
+    }
+    
     // MARK: - Body
     
     var body: some View {
@@ -15,7 +21,7 @@ struct RecipeCell: View {
     
     // MARK: - Views
     
-    private var content: some View {
+    var content: some View {
         VStack(alignment: .leading, spacing: 10) {
             backgroundImage
             labels

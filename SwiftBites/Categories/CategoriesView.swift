@@ -17,7 +17,7 @@ struct CategoriesView: View {
     
     var body: some View {
         NavigationStack {
-            CategoriesListView(searchText: searchText)
+            CategoriesList(searchText: searchText)
                 .navigationTitle("Categories")
                 .toolbar {
                     NavigationLink(value: Destination.categoryForm(.add)) {

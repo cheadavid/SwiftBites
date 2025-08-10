@@ -1,14 +1,15 @@
+//
+//  RecipeCell.swift
+//  SwiftBites
+//
+//  Created by David Chea on 10/08/2025.
+//
+
 import SwiftUI
 import SwiftData
 
 struct RecipeCell: View {
     let recipe: Recipe
-    
-    // MARK: - Initializers
-    
-    init(recipe: Recipe) {
-        self.recipe = recipe
-    }
     
     // MARK: - Body
     

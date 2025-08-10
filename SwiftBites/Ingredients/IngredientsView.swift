@@ -22,7 +22,7 @@ struct IngredientsView: View {
     
     var body: some View {
         NavigationStack {
-            IngredientsListView(searchText: searchText, selection: selection)
+            IngredientsList(searchText: searchText, selection: selection)
                 .navigationTitle("Ingredients")
                 .toolbar {
                     NavigationLink(value: IngredientForm.Mode.add) {

@@ -2,38 +2,24 @@ import SwiftUI
 import SwiftData
 
 struct RecipesView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var recipes: [Recipe]
     @State private var query = ""
     @State private var sortOrder = SortDescriptor(\Recipe.name)
-    
-    private var filteredAndSortedRecipes: [Recipe] {
-        let filtered = recipes.filter {
-            if query.isEmpty {
-                return true
-            } else {
-                return $0.name.localizedStandardContains(query) || $0.summary.localizedStandardContains(query)
-            }
-        }
-        return filtered.sorted(using: sortOrder)
-    }
     
     // MARK: - Body
     
     var body: some View {
         NavigationStack {
-            content
+            RecipesList(searchText: query, sortOrder: sortOrder)
                 .navigationTitle("Recipes")
                 .toolbar {
-                    if !recipes.isEmpty {
-                        sortOptions
-                        ToolbarItem(placement: .topBarTrailing) {
-                            NavigationLink(value: RecipeForm.Mode.add) {
-                                Label("Add", systemImage: "plus")
-                            }
+                    sortOptions
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink(value: RecipeForm.Mode.add) {
+                            Label("Add", systemImage: "plus")
                         }
                     }
                 }
+                .searchable(text: $query)
                 .navigationDestination(for: RecipeForm.Mode.self) { mode in
                     RecipeForm(mode: mode)
                 }
@@ -65,51 +51,5 @@ struct RecipesView: View {
             }
             .pickerStyle(.inline)
         }
-    }
-    
-    @ViewBuilder
-    private var content: some View {
-        if recipes.isEmpty {
-            empty
-        } else {
-            list(for: filteredAndSortedRecipes)
-        }
-    }
-    
-    var empty: some View {
-        ContentUnavailableView(
-            label: {
-                Label("No Recipes", systemImage: "list.clipboard")
-            },
-            description: {
-                Text("Recipes you add will appear here.")
-            },
-            actions: {
-                NavigationLink("Add Recipe", value: RecipeForm.Mode.add)
-                    .buttonBorderShape(.roundedRectangle)
-                    .buttonStyle(.borderedProminent)
-            }
-        )
-    }
-    
-    private var noResults: some View {
-        ContentUnavailableView(
-            label: {
-                Text("Couldn't find \"\(query)\"")
-            }
-        )
-    }
-    
-    private func list(for recipes: [Recipe]) -> some View {
-        ScrollView(.vertical) {
-            if recipes.isEmpty {
-                noResults
-            } else {
-                LazyVStack(spacing: 10) {
-                    ForEach(recipes, id: \.persistentModelID, content: RecipeCell.init)
-                }
-            }
-        }
-        .searchable(text: $query)
     }
 }

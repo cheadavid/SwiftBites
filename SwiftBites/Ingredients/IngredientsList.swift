@@ -1,5 +1,5 @@
 //
-//  IngredientsListView.swift
+//  IngredientsList.swift
 //  SwiftBites
 //
 //  Created by David Chea on 08/08/2025.
@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct IngredientsListView: View {
+struct IngredientsList: View {
     
     // MARK: - Environments
     

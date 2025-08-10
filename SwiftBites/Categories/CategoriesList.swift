@@ -1,5 +1,5 @@
 //
-//  CategoriesListView.swift
+//  CategoriesList.swift
 //  SwiftBites
 //
 //  Created by David Chea on 09/08/2025.
@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct CategoriesListView: View {
+struct CategoriesList: View {
     
     // MARK: - Queries
     

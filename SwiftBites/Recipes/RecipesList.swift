@@ -25,15 +25,10 @@ struct RecipesList: View {
         self.searchText = searchText
         self.sortOrder = sortOrder
         
-        let filteredPredicate: Predicate<Recipe> = searchText.isEmpty
-        ? #Predicate<Recipe> { _ in true }
-        : #Predicate<Recipe> {
-            $0.name.localizedStandardContains(searchText) ||
-            $0.summary.localizedStandardContains(searchText)
-        }
-        
         _recipes = Query(
-            filter: filteredPredicate,
+            filter: searchText.isEmpty
+            ? #Predicate<Recipe> { _ in true }
+            : #Predicate<Recipe> { $0.name.localizedStandardContains(searchText) || $0.summary.localizedStandardContains(searchText) },
             sort: [sortOrder]
         )
     }

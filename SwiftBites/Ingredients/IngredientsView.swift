@@ -30,9 +30,7 @@ struct IngredientsView: View {
                     }
                 }
                 .searchable(text: $searchText)
-                .navigationDestination(for: IngredientForm.Mode.self) { mode in
-                    IngredientForm(mode: mode)
-                }
+                .navigationDestination(for: IngredientForm.Mode.self) { IngredientForm(mode: $0) }
         }
     }
 }

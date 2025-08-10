@@ -22,17 +22,14 @@ struct CategoryForm: View {
     // MARK: - Properties
     
     private let mode: Mode
-    private let title: String
+    private var title = "Add Category"
     
     // MARK: - Initializers
     
     init(mode: Mode) {
         self.mode = mode
         
-        switch mode {
-        case .add:
-            title = "Add Category"
-        case .edit(let category):
+        if case .edit(let category) = mode {
             _name = .init(initialValue: category.name)
             title = "Edit \(category.name)"
         }

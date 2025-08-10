@@ -22,17 +22,14 @@ struct IngredientForm: View {
     // MARK: - Properties
     
     private let mode: Mode
-    private let title: String
+    private var title = "Add Ingredient"
     
     // MARK: - Initializers
     
     init(mode: Mode) {
         self.mode = mode
         
-        switch mode {
-        case .add:
-            title = "Add Ingredient"
-        case .edit(let ingredient):
+        if case .edit(let ingredient) = mode {
             _name = .init(initialValue: ingredient.name)
             title = "Edit \(ingredient.name)"
         }

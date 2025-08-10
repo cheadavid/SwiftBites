@@ -1,7 +1,6 @@
 import SwiftUI
-import PhotosUI
-import Foundation
 import SwiftData
+import PhotosUI
 
 struct RecipeForm: View {
     
@@ -14,8 +13,8 @@ struct RecipeForm: View {
     
     // MARK: - Environments
     
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     
     // MARK: - Queries
     
@@ -23,277 +22,177 @@ struct RecipeForm: View {
     
     // MARK: - States
     
-    @State private var name: String
-    @State private var summary: String
-    @State private var serving: Int
-    @State private var time: Int
-    @State private var instructions: String
-    @State private var selectedCategory: Category?
-    @State private var ingredients: [RecipeIngredient]
-    @State private var imageItem: PhotosPickerItem?
-    @State private var imageData: Data?
+    @State private var recipe = Recipe()
+    @State private var ingredients: [RecipeIngredient] = []
     @State private var isIngredientsPickerPresented = false
-    @State private var error: Error?
     
     // MARK: - Properties
     
     private let mode: Mode
-    private let title: String
+    private var title = "Add Recipe"
     
     // MARK: - Initializers
     
     init(mode: Mode) {
         self.mode = mode
         
-        switch mode {
-        case .add:
-            title = "Add Recipe"
-            _name = .init(initialValue: "")
-            _summary = .init(initialValue: "")
-            _serving = .init(initialValue: 1)
-            _time = .init(initialValue: 5)
-            _instructions = .init(initialValue: "")
-            _ingredients = .init(initialValue: [])
-            _selectedCategory = .init(initialValue: nil)
-            _imageData = .init(initialValue: nil)
-        case .edit(let recipe):
-            title = "Edit \(recipe.name)"
-            _name = .init(initialValue: recipe.name)
-            _summary = .init(initialValue: recipe.summary)
-            _serving = .init(initialValue: recipe.serving)
-            _time = .init(initialValue: recipe.time)
-            _instructions = .init(initialValue: recipe.instructions)
+        if case .edit(let recipe) = mode {
+            _recipe = .init(initialValue: recipe)
             _ingredients = .init(initialValue: recipe.ingredients)
-            _selectedCategory = .init(initialValue: recipe.category)
-            _imageData = .init(initialValue: recipe.imageData)
+            
+            title = "Edit \(recipe.name)"
         }
     }
     
     // MARK: - Body
     
     var body: some View {
-        GeometryReader { geometry in
-            Form {
-                imageSection(width: geometry.size.width)
-                nameSection
-                summarySection
-                categorySection
-                servingAndTimeSection
-                ingredientsSection
-                instructionsSection
-                
-                if case .edit(let recipe) = mode {
-                    deleteButton(recipe: recipe)
+        Form {
+            imageSection
+            
+            Section("Recipe Details") {
+                TextField("Name", text: $recipe.name)
+                TextField("Summary", text: $recipe.summary)
+                Picker("Category", selection: $recipe.category) {
+                    Text("None")
+                        .tag(nil as Category?)
+                    ForEach(categories, id: \.persistentModelID) { category in
+                        Text(category.name)
+                            .tag(category as Category?)
+                    }
                 }
+            }
+            
+            Section("Time & Serving") {
+                Stepper("Time: \(recipe.time) m", value: $recipe.time, in: 5...300, step: 5)
+                Stepper("Servings: \(recipe.serving) p", value: $recipe.serving, in: 1...10)
+            }
+            .monospacedDigit()
+            
+            Section("Ingredients") {
+                if ingredients.isEmpty {
+                    ContentUnavailableView(
+                        label: {
+                            Label("No Ingredients", systemImage: "list.clipboard")
+                        },
+                        description: {
+                            Text("Recipe ingredients will appear here.")
+                        },
+                        actions: {
+                            Button("Add Ingredient") {
+                                isIngredientsPickerPresented = true
+                            }
+                            .buttonBorderShape(.roundedRectangle)
+                            .buttonStyle(.borderedProminent)
+                        }
+                    )
+                } else {
+                    ForEach(ingredients, id: \.persistentModelID) { ingredient in
+                        HStack {
+                            Text(ingredient.ingredient.name)
+                                .bold()
+                            Spacer()
+                            TextField("Quantity", text: Binding(
+                                get: { ingredient.quantity },
+                                set: { quantity in ingredient.quantity = quantity }
+                            ))
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 100)
+                        }
+                        .swipeActions {
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                if let index = ingredients.firstIndex(of: ingredient) {
+                                    ingredients.remove(at: index)
+                                }
+                            }
+                        }
+                    }
+                    
+                    
+                    Button("Add Ingredient") {
+                        isIngredientsPickerPresented = true
+                    }
+                }
+            }
+            
+            Section("Instructions") {
+                TextField(
+                    "Enter cooking instructions...",
+                    text: $recipe.instructions,
+                    axis: .vertical
+                )
+                .lineLimit(6...10)
+            }
+            
+            if case .edit(let originalRecipe) = mode {
+                Button("Delete Recipe", role: .destructive) {
+                    delete(recipe: originalRecipe)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .onSubmit {
+            save()
+        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Error", isPresented: Binding<Bool>(
-            get: { error != nil },
-            set: { if !$0 { error = nil } }
-        )) {
-            Button("OK") {
-                error = nil
-            }
-        } message: {
-            Text(error?.localizedDescription ?? "An unknown error occurred.")
-        }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save", action: save)
-                    .disabled(name.isEmpty || instructions.isEmpty)
+            Button("Save", action: save)
+                .disabled(recipe.name.isEmpty || recipe.instructions.isEmpty)
+        }
+        .sheet(isPresented: $isIngredientsPickerPresented) {
+            IngredientsView { selectedIngredient in
+                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, quantity: "")
+                ingredients.append(recipeIngredient)
             }
         }
-        .onChange(of: imageItem) { _, _ in
-            Task {
-                self.imageData = try? await imageItem?.loadTransferable(type: Data.self)
-            }
-        }
-        .sheet(isPresented: $isIngredientsPickerPresented, content: ingredientPicker)
     }
     
     // MARK: - Views
     
-    private func ingredientPicker() -> some View {
-        IngredientsView { selectedIngredient in
-            let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, quantity: "")
-            ingredients.append(recipeIngredient)
-        }
-    }
-    
     @ViewBuilder
-    private func imageSection(width: CGFloat) -> some View {
+    private var imageSection: some View {
         Section {
-            imagePicker(width: width)
-            removeImageButton
-        }
-    }
-    
-    @ViewBuilder
-    private func imagePicker(width: CGFloat) -> some View {
-        PhotosPicker(selection: $imageItem, matching: .images) {
-            if let imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: width)
-                    .clipped()
-                    .listRowInsets(EdgeInsets())
-                    .frame(maxWidth: .infinity, minHeight: 200, idealHeight: 200, maxHeight: 200, alignment: .center)
-            } else {
-                Label("Select Image", systemImage: "photo")
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var removeImageButton: some View {
-        if imageData != nil {
-            Button(
-                role: .destructive,
-                action: {
-                    imageData = nil
-                    imageItem = nil
-                },
-                label: {
-                    Text("Remove Image")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            )
-        }
-    }
-    
-    @ViewBuilder
-    private var nameSection: some View {
-        Section("Name") {
-            TextField("Margherita Pizza", text: $name)
-        }
-    }
-    
-    @ViewBuilder
-    private var summarySection: some View {
-        Section("Summary") {
-            TextField(
-                "Delicious blend of fresh basil, mozzarella, and tomato on a crispy crust.",
-                text: $summary,
-                axis: .vertical
-            )
-            .lineLimit(3...5)
-        }
-    }
-    
-    @ViewBuilder
-    private var categorySection: some View {
-        Section("Category") {
-            Picker("Category", selection: $selectedCategory) {
-                Text("None").tag(nil as Category?)
-                ForEach(categories, id: \.persistentModelID) { category in
-                    Text(category.name).tag(category as Category?)
+            PhotosPicker(
+                selection: Binding(
+                    get: { nil },
+                    set: { newItem in
+                        Task {
+                            recipe.imageData = try? await newItem?.loadTransferable(type: Data.self)
+                        }
+                    }
+                ),
+                matching: .images
+            ) {
+                if let imageData = recipe.imageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, minHeight: 200, maxHeight: 200)
+                        .clipped()
+                        .listRowInsets(EdgeInsets())
+                } else {
+                    Label("Select Image", systemImage: "photo")
+                        .frame(maxWidth: .infinity, minHeight: 200)
                 }
             }
-        }
-    }
-    
-    @ViewBuilder
-    private var servingAndTimeSection: some View {
-        Section {
-            Stepper("Servings: \(serving)p", value: $serving, in: 1...100)
-            Stepper("Time: \(time)m", value: $time, in: 5...300, step: 5)
-        }
-        .monospacedDigit()
-    }
-    
-    @ViewBuilder
-    private var ingredientsSection: some View {
-        Section("Ingredients") {
-            if ingredients.isEmpty {
-                emptyIngredientsView
-            } else {
-                ingredientsList
-                addIngredientButton
-            }
-        }
-    }
-    
-    private var emptyIngredientsView: some View {
-        ContentUnavailableView(
-            label: {
-                Label("No Ingredients", systemImage: "list.clipboard")
-            },
-            description: {
-                Text("Recipe ingredients will appear here.")
-            },
-            actions: {
-                Button("Add Ingredient") {
-                    isIngredientsPickerPresented = true
+            
+            if recipe.imageData != nil {
+                Button("Remove Image", role: .destructive) {
+                    recipe.imageData = nil
                 }
-            }
-        )
-    }
-    
-    private var ingredientsList: some View {
-        ForEach(ingredients, id: \.persistentModelID) { ingredient in
-            HStack(alignment: .center) {
-                Text(ingredient.ingredient.name)
-                    .bold()
-                    .layoutPriority(2)
-                Spacer()
-                TextField("Quantity", text: Binding(
-                    get: { ingredient.quantity },
-                    set: { quantity in ingredient.quantity = quantity }
-                ))
-                .layoutPriority(1)
+                .frame(maxWidth: .infinity)
             }
         }
-        .onDelete(perform: deleteIngredients)
-    }
-    
-    private var addIngredientButton: some View {
-        Button("Add Ingredient") {
-            isIngredientsPickerPresented = true
-        }
-    }
-    
-    @ViewBuilder
-    private var instructionsSection: some View {
-        Section("Instructions") {
-            TextField(
-                """
-                1. Preheat the oven to 475°F (245°C).
-                2. Roll out the dough on a floured surface.
-                3. ...
-                """,
-                text: $instructions,
-                axis: .vertical
-            )
-            .lineLimit(8...12)
-        }
-    }
-    
-    @ViewBuilder
-    private func deleteButton(recipe: Recipe) -> some View {
-        Button(
-            role: .destructive,
-            action: { delete(recipe: recipe) },
-            label: {
-                Text("Delete Recipe")
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-        )
     }
     
     // MARK: - Methods
     
     private func delete(recipe: Recipe) {
         modelContext.delete(recipe)
-        do {
-            try modelContext.save()
-            dismiss()
-        } catch {
-            self.error = error
-        }
+        
+        dismiss()
     }
     
     private func deleteIngredients(offsets: IndexSet) {
@@ -309,50 +208,38 @@ struct RecipeForm: View {
     }
     
     private func save() {
-        do {
-            switch mode {
-            case .add:
-                let recipe = Recipe(
-                    name: name,
-                    imageData: imageData,
-                    category: selectedCategory,
-                    summary: summary,
-                    instructions: instructions,
-                    serving: serving,
-                    time: time
-                )
-                modelContext.insert(recipe)
-                
-                // Add ingredients to the recipe
-                for ingredient in ingredients {
-                    ingredient.recipe = recipe
-                    modelContext.insert(ingredient)
-                }
-                
-            case .edit(let recipe):
-                recipe.name = name
-                recipe.summary = summary
-                recipe.serving = serving
-                recipe.time = time
-                recipe.instructions = instructions
-                recipe.imageData = imageData
-                recipe.category = selectedCategory
-                
-                // Update ingredients - remove old ones and add new ones
-                for oldIngredient in recipe.ingredients {
-                    modelContext.delete(oldIngredient)
-                }
-                
-                for ingredient in ingredients {
-                    ingredient.recipe = recipe
-                    modelContext.insert(ingredient)
-                }
+        switch mode {
+        case .add:
+            // Insérer le nouvel objet dans le contexte
+            modelContext.insert(recipe)
+            
+            // Ajouter les ingrédients
+            for ingredient in ingredients {
+                ingredient.recipe = recipe
+                modelContext.insert(ingredient)
             }
             
-            try modelContext.save()
-            dismiss()
-        } catch {
-            self.error = error
+        case .edit(let originalRecipe):
+            // Mettre à jour l'objet existant
+            originalRecipe.name = recipe.name
+            originalRecipe.summary = recipe.summary
+            originalRecipe.serving = recipe.serving
+            originalRecipe.time = recipe.time
+            originalRecipe.instructions = recipe.instructions
+            originalRecipe.imageData = recipe.imageData
+            originalRecipe.category = recipe.category
+            
+            // Supprimer les anciens ingrédients et ajouter les nouveaux
+            for oldIngredient in originalRecipe.ingredients {
+                modelContext.delete(oldIngredient)
+            }
+            
+            for ingredient in ingredients {
+                ingredient.recipe = originalRecipe
+                modelContext.insert(ingredient)
+            }
         }
+        
+        dismiss()
     }
 }

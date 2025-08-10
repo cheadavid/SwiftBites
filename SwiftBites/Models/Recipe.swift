@@ -14,7 +14,7 @@ final class Recipe {
     // MARK: - Properties
     
     @Attribute(.unique)
-    var name: String
+    var name = ""
     
     @Attribute(.externalStorage)
     var imageData: Data?
@@ -23,31 +23,14 @@ final class Recipe {
     var category: Category?
     
     @Relationship(deleteRule: .cascade, inverse: \RecipeIngredient.recipe)
-    var ingredients: [RecipeIngredient]
+    var ingredients: [RecipeIngredient] = []
     
-    var summary: String
-    var instructions: String
-    var serving: Int
-    var time: Int
+    var summary = ""
+    var instructions = ""
+    var time = 10
+    var serving = 1
     
     // MARK: - Initializers
     
-    init(
-        name: String,
-        imageData: Data?,
-        category: Category?,
-        summary: String,
-        instructions: String,
-        serving: Int,
-        time: Int
-    ) {
-        self.name = name
-        self.imageData = imageData
-        self.category = category
-        self.ingredients = []
-        self.summary = summary
-        self.instructions = instructions
-        self.serving = serving
-        self.time = time
-    }
+    init() {}
 }

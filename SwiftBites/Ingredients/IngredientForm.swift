@@ -16,8 +16,8 @@ struct IngredientForm: View {
     
     // MARK: - States
     
-    @State private var name: String
-    @FocusState private var isNameFocused: Bool
+    @State private var name = ""
+    @FocusState private var isNameFocused
     
     // MARK: - Properties
     
@@ -31,7 +31,6 @@ struct IngredientForm: View {
         
         switch mode {
         case .add:
-            _name = .init(initialValue: "")
             title = "Add Ingredient"
         case .edit(let ingredient):
             _name = .init(initialValue: ingredient.name)
@@ -75,7 +74,8 @@ struct IngredientForm: View {
     private func save() {
         switch mode {
         case .add:
-            modelContext.insert(Ingredient(name: name))
+            let ingredient = Ingredient(name: name)
+            modelContext.insert(ingredient)
         case .edit(let ingredient):
             ingredient.name = name
         }

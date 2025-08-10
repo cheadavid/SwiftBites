@@ -1,32 +1,42 @@
 import SwiftUI
-import SwiftData
 
 struct CategoryForm: View {
+    
+    // MARK: - Enums
+    
     enum Mode: Hashable {
         case add
         case edit(Category)
     }
     
-    var mode: Mode
+    // MARK: - Environments
+    
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    // MARK: - States
+    
+    @State private var name = ""
+    @FocusState private var isNameFocused
+    
+    // MARK: - Properties
+    
+    private let mode: Mode
+    private let title: String
+    
+    // MARK: - Initializers
     
     init(mode: Mode) {
         self.mode = mode
+        
         switch mode {
         case .add:
-            _name = .init(initialValue: "")
             title = "Add Category"
         case .edit(let category):
             _name = .init(initialValue: category.name)
             title = "Edit \(category.name)"
         }
     }
-    
-    private let title: String
-    @State private var name: String
-    @State private var error: Error?
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @FocusState private var isNameFocused: Bool
     
     // MARK: - Body
     
@@ -36,17 +46,13 @@ struct CategoryForm: View {
                 TextField("Name", text: $name)
                     .focused($isNameFocused)
             }
+            
             if case .edit(let category) = mode {
-                Button(
-                    role: .destructive,
-                    action: {
-                        delete(category: category)
-                    },
-                    label: {
-                        Text("Delete Category")
-                            .frame(maxWidth: .infinity, alignment: .center)
-                    }
-                )
+                Button("Delete Category", role: .destructive) {
+                    modelContext.delete(category)
+                    dismiss()
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .onAppear {
@@ -55,52 +61,25 @@ struct CategoryForm: View {
         .onSubmit {
             save()
         }
-        .alert("Error", isPresented: Binding<Bool>(
-            get: { error != nil },
-            set: { if !$0 { error = nil } }
-        )) {
-            Button("OK") {
-                error = nil
-            }
-        } message: {
-            Text(error?.localizedDescription ?? "An unknown error occurred.")
-        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save", action: save)
-                    .disabled(name.isEmpty)
-            }
+            Button("Save", action: save)
+                .disabled(name.isEmpty)
         }
     }
     
-    // MARK: - Data
-    
-    private func delete(category: Category) {
-        modelContext.delete(category)
-        do {
-            try modelContext.save()
-        } catch {
-            self.error = error
-            return
-        }
-        dismiss()
-    }
+    // MARK: - Methods
     
     private func save() {
-        do {
-            switch mode {
-            case .add:
-                let category = Category(name: name)
-                modelContext.insert(category)
-            case .edit(let category):
-                category.name = name
-            }
-            try modelContext.save()
-            dismiss()
-        } catch {
-            self.error = error
+        switch mode {
+        case .add:
+            let category = Category(name: name)
+            modelContext.insert(category)
+        case .edit(let category):
+            category.name = name
         }
+        
+        dismiss()
     }
 }

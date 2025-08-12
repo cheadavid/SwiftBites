@@ -91,16 +91,14 @@ struct RecipeForm: View {
                             Spacer()
                             TextField("Quantity", text: Binding(
                                 get: { ingredient.quantity },
-                                set: { quantity in ingredient.quantity = quantity }
+                                set: { ingredient.quantity = $0 }
                             ))
                             .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: 100)
+                            .frame(maxWidth: 20)
                         }
                         .swipeActions {
                             Button("Delete", systemImage: "trash", role: .destructive) {
-                                if let index = recipe.ingredients.firstIndex(of: ingredient) {
-                                    recipe.ingredients.remove(at: index)
-                                }
+                                recipe.ingredients.removeAll { $0 == ingredient }
                             }
                         }
                     }
@@ -120,26 +118,23 @@ struct RecipeForm: View {
                 .lineLimit(6...10)
             }
             
-            if case .edit(let originalRecipe) = mode {
+            if case .edit(let recipe) = mode {
                 Button("Delete Recipe", role: .destructive) {
-                    delete(recipe: originalRecipe)
+                    modelContext.delete(recipe)
+                    dismiss()
                 }
                 .frame(maxWidth: .infinity)
             }
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .onSubmit {
-            save()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Button("Save", action: save)
-                .disabled(recipe.name.isEmpty || recipe.instructions.isEmpty)
+                .disabled(recipe.name.isEmpty || recipe.summary.isEmpty)
         }
         .sheet(isPresented: $isIngredientsPickerPresented) {
             IngredientsView { selectedIngredient in
-                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, quantity: "")
+                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, recipe: recipe, quantity: "")
                 recipe.ingredients.append(recipeIngredient)
             }
         }
@@ -147,15 +142,14 @@ struct RecipeForm: View {
     
     // MARK: - Views
     
-    @ViewBuilder
     private var imageSection: some View {
         Section {
             PhotosPicker(
                 selection: Binding(
                     get: { nil },
-                    set: { newItem in
+                    set: { photo in
                         Task {
-                            recipe.imageData = try? await newItem?.loadTransferable(type: Data.self)
+                            recipe.imageData = try? await photo?.loadTransferable(type: Data.self)
                         }
                     }
                 ),
@@ -165,9 +159,8 @@ struct RecipeForm: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
-                        .frame(maxWidth: .infinity, minHeight: 200, maxHeight: 200)
+                        .frame(maxWidth: .infinity, maxHeight: 200)
                         .clipped()
-                        .listRowInsets(EdgeInsets())
                 } else {
                     Label("Select Image", systemImage: "photo")
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -185,42 +178,18 @@ struct RecipeForm: View {
     
     // MARK: - Methods
     
-    private func delete(recipe: Recipe) {
-        modelContext.delete(recipe)
-        dismiss()
-    }
-    
     private func save() {
         switch mode {
         case .add:
-            // Pour un nouvel ajout, on insert la recette qui contient déjà ses ingrédients
             modelContext.insert(recipe)
-            
-            // Les ingrédients sont automatiquement reliés via la relation
-            for ingredient in recipe.ingredients {
-                ingredient.recipe = recipe
-                modelContext.insert(ingredient)
-            }
-            
         case .edit(let originalRecipe):
-            // Pour une édition, on met à jour directement l'objet original
             originalRecipe.name = recipe.name
-            originalRecipe.summary = recipe.summary
-            originalRecipe.serving = recipe.serving
-            originalRecipe.time = recipe.time
-            originalRecipe.instructions = recipe.instructions
             originalRecipe.imageData = recipe.imageData
             originalRecipe.category = recipe.category
-            
-            // Gestion des ingrédients : supprimer les anciens et ajouter les nouveaux
-            for oldIngredient in originalRecipe.ingredients {
-                modelContext.delete(oldIngredient)
-            }
-            
-            for ingredient in recipe.ingredients {
-                ingredient.recipe = originalRecipe
-                modelContext.insert(ingredient)
-            }
+            originalRecipe.summary = recipe.summary
+            originalRecipe.instructions = recipe.instructions
+            originalRecipe.time = recipe.time
+            originalRecipe.serving = recipe.serving
         }
         
         dismiss()

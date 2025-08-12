@@ -32,13 +32,15 @@ final class Recipe {
     
     // MARK: - Initializers
     
-    init(name: String = "",
-         imageData: Data? = nil,
-         category: Category? = nil,
-         summary: String = "",
-         instructions: String = "",
-         time: Int = 10,
-         serving: Int = 1) {
+    init(
+        name: String = "",
+        imageData: Data? = nil,
+        category: Category? = nil,
+        summary: String = "",
+        instructions: String = "",
+        time: Int = 10,
+        serving: Int = 1
+    ) {
         self.name = name
         self.imageData = imageData
         self.category = category
@@ -46,5 +48,39 @@ final class Recipe {
         self.instructions = instructions
         self.time = time
         self.serving = serving
+    }
+    
+    // MARK: - Methods
+    
+    func temporaryCopy() -> Recipe {
+        let copy = Recipe(
+            name: self.name,
+            imageData: self.imageData,
+            category: self.category,
+            summary: self.summary,
+            instructions: self.instructions,
+            time: self.time,
+            serving: self.serving
+        )
+        
+        copy.ingredients = self.ingredients.map {
+            RecipeIngredient(ingredient: $0.ingredient, recipe: copy, quantity: $0.quantity)
+        }
+        
+        return copy
+    }
+    
+    func applyValues(from recipe: Recipe) {
+        self.name = recipe.name
+        self.imageData = recipe.imageData
+        self.category = recipe.category
+        self.summary = recipe.summary
+        self.instructions = recipe.instructions
+        self.time = recipe.time
+        self.serving = recipe.serving
+        
+        self.ingredients = recipe.ingredients.map {
+            RecipeIngredient(ingredient: $0.ingredient, recipe: self, quantity: $0.quantity)
+        }
     }
 }

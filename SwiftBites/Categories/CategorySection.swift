@@ -20,7 +20,7 @@ struct CategorySection: View {
             header: {
                 HStack {
                     Text(category.name)
-                        .font(.title)
+                        .font(.title2)
                         .bold()
                     Spacer()
                     NavigationLink("Edit", value: CategoriesView.Destination.categoryForm(.edit(category)))

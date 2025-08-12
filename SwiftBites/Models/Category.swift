@@ -16,12 +16,11 @@ final class Category {
     var name: String
     
     @Relationship(deleteRule: .nullify, inverse: \Recipe.category)
-    var recipes: [Recipe]
+    var recipes: [Recipe] = []
     
     // MARK: - Initializers
     
     init(name: String) {
         self.name = name
-        self.recipes = []
     }
 }

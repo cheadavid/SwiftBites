@@ -16,12 +16,11 @@ final class Ingredient {
     var name: String
     
     @Relationship(deleteRule: .cascade, inverse: \RecipeIngredient.ingredient)
-    var recipeIngredients: [RecipeIngredient]
+    var recipeIngredients: [RecipeIngredient] = []
     
     // MARK: - Initializers
     
     init(name: String) {
         self.name = name
-        self.recipeIngredients = []
     }
 }

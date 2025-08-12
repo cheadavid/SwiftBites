@@ -134,7 +134,7 @@ struct RecipeForm: View {
         }
         .sheet(isPresented: $isIngredientsPickerPresented) {
             IngredientsView { selectedIngredient in
-                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, recipe: recipe)
+                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, recipe: recipe, quantity: "")
                 recipe.ingredients.append(recipeIngredient)
             }
         }

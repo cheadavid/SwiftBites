@@ -36,7 +36,7 @@ struct RecipeForm: View {
         self.mode = mode
         
         if case .edit(let recipe) = mode {
-            _recipe = .init(initialValue: recipe)
+            _recipe = .init(initialValue: recipe.temporaryCopy())
             title = "Edit \(recipe.name)"
         }
     }
@@ -182,14 +182,8 @@ struct RecipeForm: View {
         switch mode {
         case .add:
             modelContext.insert(recipe)
-        case .edit(let originalRecipe):
-            originalRecipe.name = recipe.name
-            originalRecipe.imageData = recipe.imageData
-            originalRecipe.category = recipe.category
-            originalRecipe.summary = recipe.summary
-            originalRecipe.instructions = recipe.instructions
-            originalRecipe.time = recipe.time
-            originalRecipe.serving = recipe.serving
+        case .edit(let recipe):
+            recipe.applyValues(from: self.recipe)
         }
         
         dismiss()

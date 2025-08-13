@@ -50,12 +50,13 @@ struct CategorySection: View {
     }
     
     private var list: some View {
-        ScrollView {
+        ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack {
                 ForEach(category.recipes, id: \.persistentModelID) { recipe in
                     NavigationLink(value: CategoriesView.Destination.recipeForm(.edit(recipe))) {
                         RecipeCell(recipe: recipe).content
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }

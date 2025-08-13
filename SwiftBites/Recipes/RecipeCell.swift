@@ -30,6 +30,7 @@ struct RecipeCell: View {
             labels
         }
         .padding(.horizontal)
+        .contentShape(Rectangle())
     }
     
     private var backgroundImage: some View {

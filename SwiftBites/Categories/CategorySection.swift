@@ -56,13 +56,8 @@ struct CategorySection: View {
                     NavigationLink(value: CategoriesView.Destination.recipeForm(.edit(recipe))) {
                         RecipeCell(recipe: recipe).content
                     }
-                    .buttonStyle(.plain)
-                    .containerRelativeFrame(.horizontal, count: 12, span: 11, spacing: 0)
                 }
             }
-            .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollIndicators(.hidden)
     }
 }

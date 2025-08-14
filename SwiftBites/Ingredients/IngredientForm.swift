@@ -77,6 +77,7 @@ struct IngredientForm: View {
             ingredient.name = name
         }
         
+        try? modelContext.save()
         dismiss()
     }
 }

@@ -220,6 +220,7 @@ struct RecipeForm: View {
             recipe.serving = serving
         }
         
+        try? modelContext.save()
         dismiss()
     }
 }

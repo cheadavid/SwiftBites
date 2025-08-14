@@ -77,6 +77,7 @@ struct CategoryForm: View {
             category.name = name
         }
         
+        try? modelContext.save()
         dismiss()
     }
 }

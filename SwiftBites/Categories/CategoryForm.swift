@@ -47,6 +47,8 @@ struct CategoryForm: View {
             if case .edit(let category) = mode {
                 Button("Delete Category", role: .destructive) {
                     modelContext.delete(category)
+                    try? modelContext.save()
+                    
                     dismiss()
                 }
                 .frame(maxWidth: .infinity)

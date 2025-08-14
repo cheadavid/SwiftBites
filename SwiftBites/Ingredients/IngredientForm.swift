@@ -47,6 +47,8 @@ struct IngredientForm: View {
             if case .edit(let ingredient) = mode {
                 Button("Delete Ingredient", role: .destructive) {
                     modelContext.delete(ingredient)
+                    try? modelContext.save()
+                    
                     dismiss()
                 }
                 .frame(maxWidth: .infinity)

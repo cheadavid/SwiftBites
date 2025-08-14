@@ -78,6 +78,7 @@ struct IngredientsList: View {
                 .swipeActions {
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         modelContext.delete(ingredient)
+                        try? modelContext.save()
                     }
                 }
             }

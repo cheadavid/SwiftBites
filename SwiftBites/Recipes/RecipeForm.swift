@@ -139,6 +139,8 @@ struct RecipeForm: View {
             if case .edit(let recipe) = mode {
                 Button("Delete Recipe", role: .destructive) {
                     modelContext.delete(recipe)
+                    try? modelContext.save()
+                    
                     dismiss()
                 }
                 .frame(maxWidth: .infinity)

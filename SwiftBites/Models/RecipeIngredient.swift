@@ -16,15 +16,13 @@ final class RecipeIngredient {
     var ingredient: Ingredient
     
     @Relationship
-    var recipe: Recipe
+    var recipe: Recipe?
     
-    var quantity: String
+    var quantity = ""
     
     // MARK: - Initializers
     
-    init(ingredient: Ingredient, recipe: Recipe, quantity: String) {
+    init(ingredient: Ingredient) {
         self.ingredient = ingredient
-        self.recipe = recipe
-        self.quantity = quantity
     }
 }

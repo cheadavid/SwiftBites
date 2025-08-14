@@ -22,7 +22,15 @@ struct RecipeForm: View {
     
     // MARK: - States
     
-    @State private var recipe = Recipe()
+    @State private var name = ""
+    @State private var summary = ""
+    @State private var instructions = ""
+    @State private var time = 10
+    @State private var serving = 1
+    @State private var imageData: Data?
+    @State private var category: Category?
+    @State private var recipeIngredients: [RecipeIngredient] = []
+    
     @State private var isIngredientsPickerPresented = false
     
     // MARK: - Properties
@@ -36,7 +44,15 @@ struct RecipeForm: View {
         self.mode = mode
         
         if case .edit(let recipe) = mode {
-            _recipe = .init(initialValue: recipe.temporaryCopy())
+            _name = .init(initialValue: recipe.name)
+            _summary = .init(initialValue: recipe.summary)
+            _instructions = .init(initialValue: recipe.instructions)
+            _time = .init(initialValue: recipe.time)
+            _serving = .init(initialValue: recipe.serving)
+            _imageData = .init(initialValue: recipe.imageData)
+            _category = .init(initialValue: recipe.category)
+            _recipeIngredients = .init(initialValue: recipe.recipeIngredients)
+            
             title = "Edit \(recipe.name)"
         }
     }
@@ -48,26 +64,26 @@ struct RecipeForm: View {
             imageSection
             
             Section("Recipe Details") {
-                TextField("Name", text: $recipe.name)
-                TextField("Summary", text: $recipe.summary)
-                Picker("Category", selection: $recipe.category) {
+                TextField("Name", text: $name)
+                TextField("Summary", text: $summary)
+                Picker("Category", selection: $category) {
                     Text("None")
                         .tag(nil as Category?)
-                    ForEach(categories, id: \.persistentModelID) { category in
-                        Text(category.name)
-                            .tag(category as Category?)
+                    ForEach(categories, id: \.persistentModelID) {
+                        Text($0.name)
+                            .tag($0 as Category?)
                     }
                 }
             }
             
             Section("Time & Serving") {
-                Stepper("Time: \(recipe.time) m", value: $recipe.time, in: 5...300, step: 5)
-                Stepper("Servings: \(recipe.serving) p", value: $recipe.serving, in: 1...10)
+                Stepper("Time: \(time) m", value: $time, in: 5...300, step: 5)
+                Stepper("Servings: \(serving) p", value: $serving, in: 1...10)
             }
             .monospacedDigit()
             
             Section("Ingredients") {
-                if recipe.ingredients.isEmpty {
+                if recipeIngredients.isEmpty {
                     ContentUnavailableView(
                         label: {
                             Label("No Ingredients", systemImage: "list.clipboard")
@@ -84,21 +100,21 @@ struct RecipeForm: View {
                         }
                     )
                 } else {
-                    ForEach(recipe.ingredients, id: \.persistentModelID) { ingredient in
+                    ForEach(recipeIngredients, id: \.persistentModelID) { recipeIngredient in
                         HStack {
-                            Text(ingredient.ingredient.name)
+                            Text(recipeIngredient.ingredient.name)
                                 .bold()
                             Spacer()
                             TextField("Quantity", text: Binding(
-                                get: { ingredient.quantity },
-                                set: { ingredient.quantity = $0 }
+                                get: { recipeIngredient.quantity },
+                                set: { recipeIngredient.quantity = $0 }
                             ))
                             .multilineTextAlignment(.trailing)
                             .frame(maxWidth: 20)
                         }
                         .swipeActions {
                             Button("Delete", systemImage: "trash", role: .destructive) {
-                                recipe.ingredients.removeAll { $0 == ingredient }
+                                recipeIngredients.removeAll { $0 == recipeIngredient }
                             }
                         }
                     }
@@ -112,7 +128,7 @@ struct RecipeForm: View {
             Section("Instructions") {
                 TextField(
                     "Enter cooking instructions...",
-                    text: $recipe.instructions,
+                    text: $instructions,
                     axis: .vertical
                 )
                 .lineLimit(6...10)
@@ -130,12 +146,12 @@ struct RecipeForm: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Button("Save", action: save)
-                .disabled(recipe.name.isEmpty || recipe.summary.isEmpty)
+                .disabled(name.isEmpty || summary.isEmpty)
         }
         .sheet(isPresented: $isIngredientsPickerPresented) {
             IngredientsView { selectedIngredient in
-                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient, recipe: recipe, quantity: "")
-                recipe.ingredients.append(recipeIngredient)
+                let recipeIngredient = RecipeIngredient(ingredient: selectedIngredient)
+                recipeIngredients.append(recipeIngredient)
             }
         }
     }
@@ -149,13 +165,13 @@ struct RecipeForm: View {
                     get: { nil },
                     set: { photo in
                         Task {
-                            recipe.imageData = try? await photo?.loadTransferable(type: Data.self)
+                            imageData = try? await photo?.loadTransferable(type: Data.self)
                         }
                     }
                 ),
                 matching: .images
             ) {
-                if let imageData = recipe.imageData, let uiImage = UIImage(data: imageData) {
+                if let imageData = imageData, let uiImage = UIImage(data: imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
@@ -167,9 +183,9 @@ struct RecipeForm: View {
                 }
             }
             
-            if recipe.imageData != nil {
+            if imageData != nil {
                 Button("Remove Image", role: .destructive) {
-                    recipe.imageData = nil
+                    imageData = nil
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -181,12 +197,29 @@ struct RecipeForm: View {
     private func save() {
         switch mode {
         case .add:
+            let recipe = Recipe(
+                name: name,
+                imageData: imageData,
+                category: category,
+                recipeIngredients: recipeIngredients,
+                summary: summary,
+                instructions: instructions,
+                time: time,
+                serving: serving
+            )
+            
             modelContext.insert(recipe)
         case .edit(let recipe):
-            recipe.applyValues(from: self.recipe)
+            recipe.name = name
+            recipe.imageData = imageData
+            recipe.category = category
+            recipe.recipeIngredients = recipeIngredients
+            recipe.summary = summary
+            recipe.instructions = instructions
+            recipe.time = time
+            recipe.serving = serving
         }
         
-        try? modelContext.save()
         dismiss()
     }
 }

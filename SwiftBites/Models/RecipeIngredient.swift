@@ -13,7 +13,7 @@ final class RecipeIngredient {
     // MARK: - Properties
     
     @Relationship
-    var ingredient: Ingredient
+    var ingredient: Ingredient?
     
     @Relationship
     var recipe: Recipe?

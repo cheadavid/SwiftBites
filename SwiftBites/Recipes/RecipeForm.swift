@@ -101,20 +101,22 @@ struct RecipeForm: View {
                     )
                 } else {
                     ForEach(recipeIngredients, id: \.persistentModelID) { recipeIngredient in
-                        HStack {
-                            Text(recipeIngredient.ingredient.name)
-                                .bold()
-                            Spacer()
-                            TextField("Quantity", text: Binding(
-                                get: { recipeIngredient.quantity },
-                                set: { recipeIngredient.quantity = $0 }
-                            ))
-                            .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: 100)
-                        }
-                        .swipeActions {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                recipeIngredients.removeAll { $0 == recipeIngredient }
+                        if let ingredient = recipeIngredient.ingredient {
+                            HStack {
+                                Text(ingredient.name)
+                                    .bold()
+                                Spacer()
+                                TextField("Quantity", text: Binding(
+                                    get: { recipeIngredient.quantity },
+                                    set: { recipeIngredient.quantity = $0 }
+                                ))
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 100)
+                            }
+                            .swipeActions {
+                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                    recipeIngredients.removeAll { $0 == recipeIngredient }
+                                }
                             }
                         }
                     }

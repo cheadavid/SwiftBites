@@ -100,22 +100,19 @@ struct RecipeForm: View {
                         }
                     )
                 } else {
-                    ForEach(recipeIngredients, id: \.persistentModelID) { recipeIngredient in
-                        if let ingredient = recipeIngredient.ingredient {
+                    ForEach(recipeIngredients.indices, id: \.self) { index in
+                        if let ingredient = recipeIngredients[index].ingredient {
                             HStack {
                                 Text(ingredient.name)
                                     .bold()
                                 Spacer()
-                                TextField("Quantity", text: Binding(
-                                    get: { recipeIngredient.quantity },
-                                    set: { recipeIngredient.quantity = $0 }
-                                ))
-                                .multilineTextAlignment(.trailing)
-                                .frame(maxWidth: 100)
+                                TextField("Quantity", text: $recipeIngredients[index].quantity)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(maxWidth: 100)
                             }
                             .swipeActions {
                                 Button("Delete", systemImage: "trash", role: .destructive) {
-                                    recipeIngredients.removeAll { $0 == recipeIngredient }
+                                    recipeIngredients.remove(at: index)
                                 }
                             }
                         }

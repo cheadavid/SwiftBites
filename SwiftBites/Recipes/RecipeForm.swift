@@ -110,7 +110,7 @@ struct RecipeForm: View {
                                 set: { recipeIngredient.quantity = $0 }
                             ))
                             .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: 20)
+                            .frame(maxWidth: 100)
                         }
                         .swipeActions {
                             Button("Delete", systemImage: "trash", role: .destructive) {

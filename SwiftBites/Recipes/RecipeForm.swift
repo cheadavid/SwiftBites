@@ -186,6 +186,7 @@ struct RecipeForm: View {
             recipe.applyValues(from: self.recipe)
         }
         
+        try? modelContext.save()
         dismiss()
     }
 }
